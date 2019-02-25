@@ -7,6 +7,8 @@ if exists("b:current_syntax")
   finish
 endif
 
+let b:current_syntax = "tomlfile"
+
 syn match tomlEscape /\\[btnfr"/\\]/ display contained
 syn match tomlEscape /\\u\x\{4}/ contained
 syn match tomlEscape /\\U\x\{8}/ contained
@@ -55,8 +57,19 @@ hi def link tomlKeyDq Identifier
 syn region tomlKeySq oneline start=/\v(^|[{,])\s*\zs'/ end=/'\ze\s*=/
 hi def link tomlKeySq Identifier
 
-syn region tomlTable oneline start=/^\s*\[[^\[]/ end=/\]/ contains=tomlKey,tomlKeyDq,tomlKeySq
+hi link tomlConfig Statement
+syn match tomlConfig /^\s*\[\s*config\s*\]/ containedin=ALL contains=tomlConfig
+
+highlight link tomlPlaceholder SpecialKey
+syn cluster tomlPH contains=tomlPlaceholder
+
+syn match tomlPlaceholder contained "^\s*\[comp\.[^.]\+\]" containedin=ALL contains=@tomlPH
+
+syn region tomlPlaceholder matchgroup=Title oneline start=/^\s*\[comp\./ end=/\]/ containedin=@tomlPH contains=@SpecialKey keepend
+
+syn region tomlTable oneline start=/^\s*\[\(config\|comp\.\|\[\)\@!/ end=/\]/ contains=tomlKey,tomlKeyDq,tomlKeySq
 hi def link tomlTable Title
+
 
 syn region tomlTableArray oneline start=/^\s*\[\[/ end=/\]\]/ contains=tomlKey,tomlKeyDq,tomlKeySq
 hi def link tomlTableArray Title
@@ -68,5 +81,25 @@ syn match tomlComment /#.*/ contains=@Spell,tomlTodo
 hi def link tomlComment Comment
 
 syn sync minlines=500
+
+highlight link inlineShellKeyword ToolbarLine
+
+" inline shell script
+let s:current_syntax = b:current_syntax
+unlet b:current_syntax
+syntax include @SH syntax/sh.vim
+" redefine shComment, bash interprets placeholders as comment.
+syn clear shComment
+
+syn match shComment "^\s*\zs#\({\(in\|out\|config\)\.[^.}]\+}\)\@!.*$" containedin=@SH contains=@shCommentGroup
+syn match shComment "\s\zs#\({\(in\|out\|config\)\.[^.}]\+}\)\@!.*$" containedin=@SH contains=@shCommentGroup
+syn match shComment contained "#\({\(in\|out\|config\)\.[^.}]\+}\)\@!.*$" containedin=@SH contains=@shCommentGroup
+
+syn match tomlPlaceholder contained "#{\(in\|out\|config\)\.[^.}]\+}" containedin=ALL contains=@tomlPH
+
+syn region tomlPlaceholder matchgroup=Title oneline start=/#{\(in\|out\|config\)\./ end=/}/ containedin=@tomlPH contains=@SpecialKey keepend
+
+let b:current_syntax = s:current_syntax
+syntax region shLine matchgroup=inlineShellKeyword start=/\v^\s*command\s*\=\s*"""$/ end=/^"""$/ contains=@SH
 
 let b:current_syntax = "toml"
